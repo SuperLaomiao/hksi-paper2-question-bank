@@ -27,7 +27,13 @@ http://localhost:3000/public/hksi-paper2.html
 
 ## GitHub Pages
 
-When GitHub Pages is enabled for this repository, open the repository Pages URL. The root page redirects to:
+Live site:
+
+```text
+https://superlaomiao.github.io/hksi-paper2-question-bank/
+```
+
+The root page redirects to:
 
 ```text
 public/hksi-paper2.html
