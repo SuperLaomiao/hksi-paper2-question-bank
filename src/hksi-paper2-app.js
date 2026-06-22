@@ -16,8 +16,15 @@ const scopeLabels = {
   marked: "收藏"
 };
 
+const phaseLabels = {
+  1: "第一階段",
+  2: "第二階段",
+  all: "全部題庫"
+};
+
 const defaultState = {
   mode: "practice",
+  phase: 1,
   chapter: "all",
   scope: "all",
   currentId: questions[0].id,
@@ -33,7 +40,9 @@ let tick = null;
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    return { ...defaultState, ...saved };
+    const loaded = { ...defaultState, ...saved };
+    if (![1, 2, "all"].includes(loaded.phase)) loaded.phase = 1;
+    return loaded;
   } catch {
     return { ...defaultState };
   }
@@ -75,8 +84,15 @@ function questionById(id) {
   return questions.find((question) => question.id === id) ?? questions[0];
 }
 
+function phaseQuestions() {
+  return questions.filter(
+    (question) => state.phase === "all" || question.phase === Number(state.phase)
+  );
+}
+
 function filteredQuestions() {
   return questions.filter((question) => {
+    const phaseMatch = state.phase === "all" || question.phase === Number(state.phase);
     const chapterMatch = state.chapter === "all" || question.chapter === Number(state.chapter);
     const answer = state.answers[question.id];
     const isBookmarked = state.bookmarks.includes(question.id);
@@ -85,7 +101,7 @@ function filteredQuestions() {
       (state.scope === "fresh" && !answer) ||
       (state.scope === "wrong" && answer && !answer.correct) ||
       (state.scope === "marked" && isBookmarked);
-    return chapterMatch && scopeMatch;
+    return phaseMatch && chapterMatch && scopeMatch;
   });
 }
 
@@ -98,7 +114,8 @@ function currentPracticeQuestion() {
 }
 
 function stats() {
-  const answered = Object.values(state.answers);
+  const pool = phaseQuestions();
+  const answered = pool.map((question) => state.answers[question.id]).filter(Boolean);
   const correct = answered.filter((answer) => answer.correct).length;
   const wrong = answered.filter((answer) => !answer.correct).length;
   const pct = answered.length ? Math.round((correct / answered.length) * 100) : 0;
@@ -107,8 +124,8 @@ function stats() {
     correct,
     wrong,
     pct,
-    fresh: questions.length - answered.length,
-    marked: state.bookmarks.length
+    fresh: pool.length - answered.length,
+    marked: pool.filter((question) => state.bookmarks.includes(question.id)).length
   };
 }
 
@@ -184,7 +201,7 @@ function shuffle(items) {
 }
 
 function startMock() {
-  const ids = shuffle(questions).slice(0, 40).map((question) => question.id);
+  const ids = shuffle(phaseQuestions()).slice(0, 40).map((question) => question.id);
   state.mock = {
     ids,
     index: 0,
@@ -327,9 +344,10 @@ function renderHeader() {
 }
 
 function renderSyllabus() {
+  const pool = phaseQuestions();
   const chapterStats = chapters
     .map((chapter) => {
-      const items = questions.filter((question) => question.chapter === chapter.id);
+      const items = pool.filter((question) => question.chapter === chapter.id);
       const done = items.filter((question) => state.answers[question.id]).length;
       return { ...chapter, total: items.length, done };
     })
@@ -353,9 +371,9 @@ function renderSyllabus() {
         <span class="chapter-accent all"></span>
         <span>
           <strong>全部章節</strong>
-          <small>${questions.length} 道題</small>
+          <small>${pool.length} 道題</small>
         </span>
-        <em>${stats().answered}/${questions.length}</em>
+        <em>${stats().answered}/${pool.length}</em>
       </button>
       ${chapterStats}
     </aside>
@@ -365,7 +383,9 @@ function renderSyllabus() {
 function renderInsights() {
   const summary = stats();
   const activeChapter = state.chapter === "all" ? null : chapterById(state.chapter);
-  const recentWrong = questions.filter((question) => state.answers[question.id] && !state.answers[question.id].correct).slice(-4);
+  const recentWrong = phaseQuestions()
+    .filter((question) => state.answers[question.id] && !state.answers[question.id].correct)
+    .slice(-4);
 
   return `
     <aside class="insight-panel">
@@ -413,6 +433,7 @@ function renderStudy() {
   const list = filteredQuestions();
   if (!question) {
     return `
+      ${renderFilterBar(list)}
       <section class="empty-state">
         <h2>這個篩選暫時沒有題目</h2>
         <p>換一個章節或篩選條件即可繼續。</p>
@@ -442,14 +463,31 @@ function renderFilterBar(list) {
         <span class="progress-flag">${icon("flag")} ${list.findIndex((q) => q.id === state.currentId) + 1}/${list.length || 0}</span>
         <strong>${state.mode === "review" ? "背題模式" : "刷題模式"}</strong>
       </div>
-      <div class="scope-tabs" aria-label="題目篩選">
-        ${Object.entries(scopeLabels)
-          .map(
-            ([scope, label]) => `
-              <button class="${state.scope === scope ? "is-active" : ""}" data-scope="${scope}">${label}</button>
-            `
-          )
-          .join("")}
+      <div class="filter-actions">
+        <div class="phase-tabs" aria-label="學習階段">
+          ${Object.entries(phaseLabels)
+            .map(([phase, label]) => {
+              const value = phase === "all" ? "all" : Number(phase);
+              const count = questions.filter(
+                (question) => value === "all" || question.phase === value
+              ).length;
+              return `
+                <button class="${state.phase === value ? "is-active" : ""}" data-phase="${phase}">
+                  ${label}<small>${count}</small>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+        <div class="scope-tabs" aria-label="題目篩選">
+          ${Object.entries(scopeLabels)
+            .map(
+              ([scope, label]) => `
+                <button class="${state.scope === scope ? "is-active" : ""}" data-scope="${scope}">${label}</button>
+              `
+            )
+            .join("")}
+        </div>
       </div>
     </section>
   `;
@@ -464,6 +502,7 @@ function renderQuestionCard(question, options) {
     <article class="question-card">
       <div class="question-meta">
         <span class="type-badge">單選</span>
+        <span class="phase-badge">階段 ${question.phase}</span>
         <span>第 ${question.chapter} 章 · ${question.topic}</span>
         <span>${question.difficulty}</span>
         <button
@@ -564,12 +603,13 @@ function renderAnswerSheet(list, activeId, mock = false) {
 
 function renderMock() {
   if (!state.mock) {
+    const pool = phaseQuestions();
     return `
       <section class="mock-start">
         <div>
           <span class="type-badge">40 題 / 60 分鐘</span>
           <h2>Paper 2 模擬測驗</h2>
-          <p>系統會從 84 道題中隨機抽 40 題。提交後才顯示分數和解析。</p>
+          <p>系統會從${phaseLabels[state.phase]}的 ${pool.length} 道題中隨機抽 40 題。提交後才顯示分數和解析。</p>
         </div>
         <button class="primary-button" data-start-mock>${icon("timer")} 開始模考</button>
       </section>
@@ -651,9 +691,10 @@ function renderMaterials() {
 
 function renderBottomNav() {
   const summary = stats();
+  const pool = phaseQuestions();
   return `
     <nav class="bottom-nav" aria-label="快捷操作">
-      <button data-bottom="share">${icon("book")} ${questions.length} 題</button>
+      <button data-bottom="share">${icon("book")} ${pool.length} 題</button>
       <button data-bookmark="${state.currentId || questions[0].id}">${icon("star")} 收藏 ${summary.marked}</button>
       <button data-bottom="wrong">${icon("x")} 錯題 ${summary.wrong}</button>
       <button data-open-sheet>${icon("grid")} 答題卡</button>
@@ -667,6 +708,15 @@ function handleClick(event) {
 
   if (target.dataset.mode) {
     state.mode = target.dataset.mode;
+    state.sheetOpen = false;
+    saveState();
+    render();
+    return;
+  }
+
+  if (target.dataset.phase) {
+    state.phase = target.dataset.phase === "all" ? "all" : Number(target.dataset.phase);
+    state.currentId = filteredQuestions()[0]?.id ?? phaseQuestions()[0]?.id ?? questions[0].id;
     state.sheetOpen = false;
     saveState();
     render();
@@ -780,7 +830,7 @@ function handleClick(event) {
     state.mode = "practice";
     state.chapter = "all";
     state.scope = "all";
-    state.currentId = questions[0].id;
+    state.currentId = phaseQuestions()[0]?.id ?? questions[0].id;
     state.sheetOpen = false;
     saveState();
     render();

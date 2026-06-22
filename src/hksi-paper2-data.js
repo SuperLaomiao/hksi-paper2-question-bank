@@ -1,3 +1,5 @@
+import { phaseTwoQuestions } from "./hksi-paper2-phase2-data.js";
+
 export const examMeta = {
   title: "HKSI Paper 2",
   subtitle: "證券規例題庫",
@@ -2798,10 +2800,15 @@ function deduplicateQuestions(candidates) {
   });
 }
 
-export const questions = deduplicateQuestions([
+const phaseOneQuestions = deduplicateQuestions([
   ...coreQuestions,
   ...buildConceptQuestions(),
   ...researchQuestions
+]).map((question) => ({ ...question, phase: 1 }));
+
+export const questions = deduplicateQuestions([
+  ...phaseOneQuestions,
+  ...phaseTwoQuestions
 ]);
 
 examMeta.questionCount = questions.length;

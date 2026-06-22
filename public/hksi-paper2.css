@@ -109,6 +109,7 @@ svg {
 }
 
 .mode-tabs,
+.phase-tabs,
 .scope-tabs {
   display: flex;
   align-items: center;
@@ -120,6 +121,7 @@ svg {
 }
 
 .mode-tab,
+.phase-tabs button,
 .scope-tabs button {
   min-height: 36px;
   border: 0;
@@ -132,6 +134,7 @@ svg {
 }
 
 .mode-tab.is-active,
+.phase-tabs button.is-active,
 .scope-tabs button.is-active {
   background: var(--ink);
   color: white;
@@ -244,6 +247,26 @@ svg {
   gap: 5px;
 }
 
+.filter-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.phase-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.phase-tabs small {
+  color: inherit;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
 .progress-flag {
   display: inline-flex;
   align-items: center;
@@ -273,6 +296,18 @@ svg {
   background: var(--blue);
   color: white;
   padding: 0 9px;
+  font-weight: 800;
+}
+
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid #b9d7f4;
+  border-radius: 6px;
+  background: #eef6ff;
+  color: #1769aa;
+  padding: 0 8px;
   font-weight: 800;
 }
 
@@ -847,8 +882,22 @@ svg {
     padding: 10px;
   }
 
+  .filter-actions {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .phase-tabs,
   .scope-tabs {
+    width: 100%;
     overflow-x: auto;
+  }
+
+  .phase-tabs button {
+    flex: 1;
+    min-width: 104px;
+    justify-content: center;
+    padding: 0 8px;
   }
 
   .scope-tabs button {
