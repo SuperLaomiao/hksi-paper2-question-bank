@@ -4,7 +4,8 @@ Mobile-first HKSI LE Paper 2 practice question bank for Securities Regulation re
 
 ## What is included
 
-- 800 original practice questions for HKSI Paper 2
+- 219 curated practice questions for HKSI Paper 2, with repeated stems and answer statements removed
+- 48 newly designed questions based on themes from HKSI's official 2006 past paper and 2023 sample test
 - Chapter filters for all 7 Paper 2 syllabus areas
 - Practice mode, review mode, mock exam mode, bookmarks, wrong-question review, and answer sheet
 - Official/public reference links for HKSI, SFC, HKEX, and Hong Kong e-Legislation materials
